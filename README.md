@@ -1,6 +1,6 @@
 This is a build of [Spaghettimod](https://github.com/pisto/spaghettimod) on which the commit [6e90c481b7144ac0e215a2e270ee29ed6733703f](https://github.com/pisto/spaghettimod/commit/6e90c481b7144ac0e215a2e270ee29ed6733703f) is reverted.
 
-There are some additional tweaks to allow easily deployment of servers with custom maps.
+There are some additional tweaks to allow easy deployment of servers with custom maps.
 
 
 Usage (TODO: need better documentation)

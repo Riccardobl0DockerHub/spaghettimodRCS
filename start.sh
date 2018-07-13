@@ -114,6 +114,8 @@ echo "Run master server for $SERVER_IP"
 if [ "$NO_MASTER" = "" ];
 then
     cd ./script/std/
+    cp -f /opt/rcs_pseudomaster .
+    chmod +x rcs_pseudomaster
     ./rcs_pseudomaster $SERVER_IP &
     cd ../../
 fi

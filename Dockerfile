@@ -22,6 +22,7 @@ RUN cd /opt\
 ADD start.sh /opt/start.sh
 ADD 1000-config.lua /opt/spaghettimod/script/load.d/1000-config.lua
 ADD 200-auth.lua /opt/spaghettimod/script/load.d/200-auth.lua
+ADD rcs_pseudomaster /opt/rcs_pseudomaster
 
 RUN chmod +x /opt/start.sh&&mkdir -p /opt/script&&mkdir -p /opt/packages&&chown -Rvf sauer:sauer /opt/ 
 
