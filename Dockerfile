@@ -1,4 +1,4 @@
-FROM ubuntu@sha256:ec0e4e8bf2c1178e025099eed57c566959bb408c6b478c284c1683bc4298b683
+FROM ubuntu:xenial
 
 RUN apt-get update&& apt-get -y install git net-tools \
 &&apt-get -y install luajit libluajit-5.1-dev luarocks socat  zlib1g-dev\
