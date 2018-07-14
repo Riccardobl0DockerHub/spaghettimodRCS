@@ -12,7 +12,7 @@ RUN cd /opt\
     &&git clone https://github.com/pisto/spaghettimod.git\
 &&cd spaghettimod\
 &&git revert 6e90c481b7144ac0e215a2e270ee29ed6733703f \
-&&make\
+&&make PLATFORM=x86_64\
 &&./updategeoip\
 &&rm script/load.d/200-ASkidban.lua\
 &&rm script/load.d/2000-serverexec.lua \
