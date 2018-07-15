@@ -2,9 +2,17 @@
 
 set -e
 
-export PACKAGES=/opt/packages
-mkdir -p $PACKAGES/base
+if [ "$PACKAGES" = "" ];
+then
+    export PACKAGES=/opt/packages
+fi
 
+if [ "$SCRIPT" = "" ];
+then
+    export SCRIPT=/opt/script
+fi
+
+mkdir -p $PACKAGES/base
 function install {
    
     if [[ $1 == *.ogz ]]; #map.ogz
@@ -59,6 +67,12 @@ function install {
         echo "Unknown file extension $1"
     fi
 }
+
+if [ -f "$SCRIPT/init.sh" ];
+then
+    source "$SCRIPT/init.sh"
+    init
+fi
 
 if [ "$MAP_DL" != "" ];
 then

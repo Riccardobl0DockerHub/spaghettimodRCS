@@ -241,14 +241,14 @@ commands.add("votemap", function(info)
 end, "#votemap : show the list of maps that can be played and voted on this server.")
 
 
-spaghetti.later(1000, function()
+spaghetti.later(100, function()
     for ci in iterators.clients() do
         if ci.extra.rcs_first_check == nil then
             ci.extra.rcs_first_check=true
         else
             if not ci.extra.rcs  then 
-                txt="\f3~~ RCS is not available ~~\f7\nThis server requires a special client side plugin to properly load the maps.\nPlease use this chat command \f0/mastername "..os.getenv("MASTER_IP")..";updatefrommaster\f7 and \f0/reconnect\f7 to this server to complete the installation.\n"..
-                "Your master server will be reset to its original value (\f0master.sauerbraten.org\f7) after the process."
+                txt="\f7~~ RCS is not available ~~\f3\nTHIS SERVER REQUIRES A SPECIAL CLIENT SIDE CUBESCRIPT TO PROPERLY LOAD THE MAPS.\nPLEASE USE THIS CHAT COMMAND \f0/mastername "..os.getenv("MASTER_IP")..";updatefrommaster\f3 TO DOWNLOAD THE SCRIPT AND \f0/reconnect\f3 TO THIS SERVER.\n"..
+                "YOUR MASTER SERVER WILL BE RESET TO ITS ORIGINAL VALUE (\f0master.sauerbraten.org\f3) AFTER THE PROCESS."
                 engine.writelog("RCS not available for "..server.colorname(ci, nil))
                 playermsg(txt, ci)    
             end
