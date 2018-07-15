@@ -224,6 +224,12 @@ banner = "This server uses pisto's RCS and spaghettimod.\n Use \f0#votemap\f7 to
 spaghetti.addhook("maploaded", function(info) info.ci.extra.mapcrcfence = fence(info.ci) end)
 spaghetti.later(60000, L"server.sendservmsg(banner)", true)
 
+if os.getenv("USE_SWMAPPACK") ~= "" then
+  swbanner="\f6Want a better experience? Download the Sauer World content pack: \f1http://bit.ly/sauerpack1"
+  spaghetti.later(62000, L"server.sendservmsg(swbanner)", true)
+end
+
+
 commands.add("rcs", function(info) playermsg(
 "\f1Remote CubeScript\f7 (\f1rcs\f7) allows the server to run cubescript code on your client (like the \f2crapmod.net\f7 master server).\n" ..
 "\f1rcs\f7 provides a way to use auto-downloaded maps in ctf and capture modes, and run the map cfg file.\n" ..
@@ -243,13 +249,16 @@ end, "#votemap : show the list of maps that can be played and voted on this serv
 
 spaghetti.later(100, function()
     for ci in iterators.clients() do
-        if ci.extra.rcs_first_check == nil then
-            ci.extra.rcs_first_check=true
-        else
+        if ci.extra.nchecks ==nil then
+            ci.extra.nchecks=0
+        elseif ci.extra.nchecks < 20 then
+            ci.extra.nchecks=ci.extra.nchecks+1
+        elseif ci.extra.nchecks < 1200 then
+            ci.extra.nchecks=ci.extra.nchecks+1
             if not ci.extra.rcs  then 
                 txt="\f7~~ RCS is not available ~~\f3\nTHIS SERVER REQUIRES A SPECIAL CLIENT SIDE CUBESCRIPT TO PROPERLY LOAD THE MAPS.\nPLEASE USE THIS CHAT COMMAND \f0/mastername "..os.getenv("MASTER_IP")..";updatefrommaster\f3 TO DOWNLOAD THE SCRIPT AND \f0/reconnect\f3 TO THIS SERVER.\n"..
                 "YOUR MASTER SERVER WILL BE RESET TO ITS ORIGINAL VALUE (\f0master.sauerbraten.org\f3) AFTER THE PROCESS."
-                engine.writelog("RCS not available for "..server.colorname(ci, nil))
+              -- engine.writelog("RCS not available for "..server.colorname(ci, nil))
                 playermsg(txt, ci)    
             end
         end

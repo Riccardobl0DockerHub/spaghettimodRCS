@@ -39,6 +39,10 @@ function qp_install {
             elif [ "$sd" == "base" ]; # map.zip/base/map.ogz
             then
                 cp -Rvf "$sd"/* "$PACKAGES/base/"
+                dd=1     
+            elif [ -f "$sd/"*.ogz ]; # map.zip/*/map.ogz
+            then
+                cp -Rvf "$sd"/* "$PACKAGES/base/"
                 dd=1               
             fi
         done

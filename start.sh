@@ -21,10 +21,20 @@ then
     init
 fi
 
+
+
+set +e 
+cp -Rf /opt/preinit/* /opt/spaghettimod/preinit/
+set -e
+for sscript in /opt/spaghettimod/preinit/*.sh
+do
+    source "$sscript"
+done
 set +e 
 cp -Rf /opt/script/* /opt/spaghettimod/script/
 cp -Rf /opt/packages/* /opt/spaghettimod/packages/
 set -e
+
 cd /opt/spaghettimod
 echo "cs.serverdesc = \"$SERVER_DESC\"">script/load.d/200-servername.lua
 echo "Run master server for $SERVER_IP"

@@ -20,4 +20,3 @@
             echo "SW map pack already installed!"
         fi
     fi
-    echo "Initialized"
