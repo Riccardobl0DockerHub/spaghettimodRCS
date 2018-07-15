@@ -2,6 +2,7 @@ This is a build of [Spaghettimod](https://github.com/pisto/spaghettimod) on whic
 
 There are some additional tweaks to allow easy deployment of servers with custom maps.
 
+[![Docker Hub build](https://dockerbuildbadges.quelltext.eu/status.svg?organization=riccardoblb&repository=spaghettimodrcs&tag=amd64)](https://hub.docker.com/r/riccardoblb/spaghettimodrcs/)
 
 Usage (TODO: need better documentation)
 ```
