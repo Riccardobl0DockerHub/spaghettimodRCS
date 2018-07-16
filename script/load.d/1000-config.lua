@@ -3,6 +3,7 @@
   This is the configuration I use on my server.
 
 ]]--
+require"std.mapbattle"
 
 engine.writelog("Applying the new maps configuration.")
 
@@ -18,20 +19,20 @@ local iterators=require"std.iterators"
 
 cs.maxclients = os.getenv("MAX_PLAYERS")
 cs.serverport = os.getenv("SERVER_PORT")
-
---make sure you delete the next two lines, or I'll have admin on your server.
 cs.serverauth = os.getenv("AUTH_DOMAIN")
 
-
-spaghetti.addhook(server.N_SETMASTER, L"_.skip = _.skip or (_.mn ~= _.ci.clientnum and _.ci.privilege < server.PRIV_ADMIN)")
+spaghetti.later(10000, L'engine.requestmaster("\\n")', true)
+spaghetti.addhook("masterin", L'if _.input:match("^failreg") then engine.lastupdatemaster = 0 end', true)
 
 cs.lockmaprotation = 2
 cs.maprotationreset()
 
+spaghetti.addhook(server.N_SETMASTER, L"_.skip = _.skip or (_.mn ~= _.ci.clientnum and _.ci.privilege < server.PRIV_AUTH)")
+
 local rcs = require"std.rcs"
 
-local monomaps = os.getenv("MAPS")
-monomaps = map.uv(function(maps)
+local maplist = os.getenv("MAPS")
+maplist = map.uv(function(maps)
   local t = map.f(I, maps:gmatch("[^ ]+"))
   for i = 2, #t do
     local j = math.random(i)
@@ -40,44 +41,85 @@ monomaps = map.uv(function(maps)
     t[i] = s
   end
   return t
-end, monomaps)
+end, maplist)
 
-local MODE1=os.getenv("MODE1")
-local MODE2=os.getenv("MODE2")
-local MODE3=os.getenv("MODE3")
+local MODE=os.getenv("MODE")
 
-cs.maprotation(MODE1, table.concat(monomaps, " "),MODE2, table.concat(monomaps, " "),MODE3, table.concat(monomaps, " "))
+
+cs.maprotation(MODE, table.concat(maplist, " "))
 
 local needscfg = L"_2, { needcfg = not not io.open('packages/base/' .. _2 .. '.cfg') }"
-local maps = map.im(needscfg, table.sort(monomaps))
+local maps = map.im(needscfg, table.sort(maplist))
+
+
+
+local maplist_part1="";
+local maplist_part2="";
+local maplist_part3="";
+
+local maplist_size=0;
+for mpi in string.gmatch(os.getenv("MAPS"), "%S+") do
+  maplist_size=maplist_size+1
+end
+
+local maps_per_part=maplist_size/3;
+local selected_part=0;
+local part_i=0;
+
+for mpi in string.gmatch(os.getenv("MAPS"), "%S+") do
+  if part_i > maps_per_part and selected_part<3 then
+    selected_part=selected_part+1
+    part_i=0
+  end
+  part_i=part_i+1
+  if(selected_part==0) then
+    if maplist_part1 ~= "" then
+      maplist_part1=maplist_part1.." "
+    end
+    maplist_part1=maplist_part1..mpi
+  elseif selected_part==1 then
+    if maplist_part2 ~= "" then
+      maplist_part2=maplist_part2.." "
+    end
+    maplist_part2=maplist_part2..mpi
+  else
+    if maplist_part3 ~= "" then
+      maplist_part3=maplist_part3.." "
+    end
+    maplist_part3=maplist_part3..mpi
+  end
+end
 
 
 local maplist_gui = ([[
-reissenfu_maps_makegui = [
-  newgui (concatword reissenfu_maps_ $arg1) [
-    guilist [
-      guistrut 0 0
-      guilist [ guistrut 0 0; looplist curmap [@@@@arg2] [
-          guibutton $curmap (concat @@@@arg1 $curmap) "cube"
-        ]
-      ]
+  rcs_swmaps = "MAPS1"
+  rcs_swmaps2 = "MAPS2"
+  rcs_swmaps3 = "MAPS3"
+  
+  rcs_genmapitems = [
+    looplist curmap $arg1 [
+        guibutton $curmap (concat map $curmap) "cube"
     ]
-  ] (unescape [@arg1 maps])
-  showgui (concatword reissenfu_maps_ $arg1)
 ]
-newgui reissenfu_modelist [
-  guilist [
-    guilist [
-      guibutton "MODE1" "mode 11; reissenfu_maps_makegui MODE1 [MAPS]"
-      guibutton "MODE2" "mode 12; reissenfu_maps_makegui MODE2 [MAPS]"
-      guibutton "MODE3" "mode 17; reissenfu_maps_makegui MODE3 [MAPS]"
-    ]
-  ]
-] "Map Vote"
-showgui reissenfu_modelist
-]]):gsub("MODE1", MODE1):gsub("MODE2", MODE2):gsub("MODE3", MODE3):gsub("MAPS", table.concat(monomaps, " ")):gsub("  +", " ")
 
-spaghetti.addhook(server.N_MAPVOTE, L"_.reqmode = _.reqmode ~= 1 and _.reqmode or server.gamemode")
+rcs_showmapshot = [ 
+    guibar
+    guiimage (concatword "packages/base/" (if (> $numargs 0) [result $arg1] [at $guirollovername 0]) ".jpg") $guirolloveraction 4 1 "data/cube.png"
+]
+
+newgui rcs_votemap [
+    guilist [
+      guistrut 10 1
+      guilist [ guistrut 10 1; rcs_genmapitems $rcs_swmaps ]
+      guilist [ guistrut 10 1; rcs_genmapitems $rcs_swmaps2 ]
+      guilist [ guistrut 10 1; rcs_genmapitems $rcs_swmaps3 ]
+      rcs_showmapshot
+    ]
+] "Vote Map"
+
+showgui rcs_votemap
+]]):gsub("MAPS1", maplist_part1):gsub("MAPS2", maplist_part2):gsub("MAPS3", maplist_part3):gsub("  +", " ")
+
 
 local ents, putf, n_client = require"std.ents", require"std.putf", require"std.n_client"
 local function quirk_replacemodels(replacements)
@@ -99,7 +141,7 @@ local function quirk_multi(quirks)
   return function(ci) for _, f in ipairs(quirks) do f(ci) end end
 end
 
-server.mastermask = server.MM_PUBSERV + server.MM_AUTOAPPROVE
+server.mastermask = server.MM_PUBSERV + server.MM_AUTOAPPROVE + server.MM_LOCKED + server.MM_VETO
 
 require"std.pm"
 
@@ -127,34 +169,10 @@ abuse.ratelimit(server.N_MAPVOTE, 1/10, 3, L"nil, 'That map sucks anyway.'")
 abuse.ratelimit(server.N_SPECTATOR, 1/30, 5, L"_.ci.clientnum ~= _.spectator, 'Can\\'t even describe you.'") --self spec
 abuse.ratelimit(server.N_MASTERMODE, 1/30, 5, L"_.ci.privilege == server.PRIV_NONE, 'Can\\'t even describe you.'")
 abuse.ratelimit({ server.N_AUTHTRY, server.N_AUTHKICK }, 1/60, 4, L"nil, 'Are you really trying to bruteforce a 192 bits number? Kudos to you!'")
-abuse.ratelimit(server.N_CLIENTPING, 4.5) --no message as it could be cause of network jitter
 abuse.ratelimit(server.N_SERVCMD, 0.5, 10, L"nil, 'Yes I\\'m filtering this too.'")
+abuse.ratelimit(server.N_JUMPPAD, 1, 10, L"nil, 'I know I used to do that but... whatever.'")
+abuse.ratelimit(server.N_TELEPORT, 1, 10, L"nil, 'I know I used to do that but... whatever.'")
 
---prevent masters from annoying players
-local tb = require"utils.tokenbucket"
-local function bullying(who, victim)
-  local t = who.extra.bullying or {}
-  local rate = t[victim.extra.uuid] or tb(1/30, 6)
-  t[victim.extra.uuid] = rate
-  who.extra.bullying = t
-  return not rate()
-end
-spaghetti.addhook(server.N_SETTEAM, function(info)
-  if info.skip or info.who == info.sender or not info.wi or info.ci.privilege == server.PRIV_NONE then return end
-  local team = engine.filtertext(info.text):sub(1, engine.MAXTEAMLEN)
-  if #team == 0 or team == info.wi.team then return end
-  if bullying(info.ci, info.wi) then
-    info.skip = true
-    playermsg("...", info.ci)
-  end
-end)
-spaghetti.addhook(server.N_SPECTATOR, function(info)
-  if info.skip or info.spectator == info.sender or not info.spinfo or info.ci.privilege == server.PRIV_NONE or info.val == (info.spinfo.state.state == engine.CS_SPECTATOR and 1 or 0) then return end
-  if bullying(info.ci, info.spinfo) then
-    info.skip = true
-    playermsg("...", info.ci)
-  end
-end)
 
 --ratelimit just gobbles the packet. Use the selector to add a tag to the exceeding message, and append another hook to send the message
 local function warnspam(packet)
@@ -164,38 +182,6 @@ end
 map.nv(function(type) spaghetti.addhook(type, warnspam) end,
   server.N_TEXT, server.N_SAYTEAM, server.N_SWITCHNAME, server.N_MAPVOTE, server.N_SPECTATOR, server.N_MASTERMODE, server.N_AUTHTRY, server.N_AUTHKICK, server.N_CLIENTPING
 )
-
---#cheater command
-local home = os.getenv("HOME") or "."
--- local function ircnotify(args)
---   --I use ii for the bots
---   local cheaterchan, pisto = io.open(home .. "/irc/cheaterchan/in", "w"), io.open(home .. "/irc/ii/pipes/pisto/in", "w")
---   for ip, requests in pairs(args) do
---     local str = "#cheater" .. (requests.ai and " \x02through bots\x02" or "") .. " on pisto.horse 1111"
---     if requests.total > 1 then str = str .. " (" .. requests.total .. " reports)" end
---     str = str .. ": "
---     local names
---     for cheater in pairs(requests.cheaters) do str, names = str .. (names and ", \x02" or "\x02") .. engine.encodeutf8(cheater.name) .. " (" .. cheater.clientnum .. ")\x02", true end
---     if not names then str = str .. "<disconnected>" end
---     if cheaterchan then cheaterchan:write(str .. ", auth holders please help!\n") end
---     if pisto then pisto:write(str .. " -- " .. tostring(require"utils.ip".ip(ip)) .. "\n") end
---   end
---   if cheaterchan then cheaterchan:close() end
---   if pisto then pisto:close() end
--- end
-
--- abuse.cheatercmd(ircnotify, 20000, 1/30000, 3)
--- local sound = require"std.sound"
--- spaghetti.addhook(server.N_TEXT, function(info)
---   if info.skip then return end
---   local low = info.text:lower()
---   if not low:match"cheat" and not low:match"hack" and not low:match"auth" and not low:match"kick" then return end
---   local tellcheatcmd = info.ci.extra.tellcheatcmd or tb(1/30000, 1)
---   info.ci.extra.tellcheatcmd = tellcheatcmd
---   if not tellcheatcmd() then return end
---   playermsg("\f2Problems with a cheater? Please use \f3#cheater [cn|name]\f2, and operators will look into the situation!", info.ci)
---   sound(info.ci, server.S_HIT, true) sound(info.ci, server.S_HIT, true)
--- end)
 
 require"std.enetping"
 
@@ -207,7 +193,6 @@ spaghetti.addhook("martian", function(info)
   info.skip = true
 end, true)
 
---simple banner
 
 local commands = require"std.commands"
 
@@ -220,26 +205,33 @@ end)
 
 local fence, sendmap = require"std.fence", require"std.sendmap", require"std.maploaded"
 
-banner = "This server uses pisto's RCS and spaghettimod.\n Use \f0#votemap\f7 to display a list of available maps."
+banner = "Use \f1#votemap\f7 to display a list of available maps."
 spaghetti.addhook("maploaded", function(info) info.ci.extra.mapcrcfence = fence(info.ci) end)
 spaghetti.later(60000, L"server.sendservmsg(banner)", true)
 
+spaghetti.later(30000, function()
+      if server.m_collect then
+        server.sendservmsg("\f6COLLECT ELI5:\f1 Kill the reds and collect their skulls. Touch the red base to steal one skull from their collection.")
+      end
+  end,true)
+
+
 if os.getenv("USE_SWMAPPACK") ~= "" then
   swbanner="\f6Want a better experience? Download the Sauer World content pack: \f1http://bit.ly/sauerpack1"
-  spaghetti.later(62000, L"server.sendservmsg(swbanner)", true)
+  spaghetti.later(120000, L"server.sendservmsg(swbanner)", true)
 end
 
 
 commands.add("rcs", function(info) playermsg(
 "\f1Remote CubeScript\f7 (\f1rcs\f7) allows the server to run cubescript code on your client (like the \f2crapmod.net\f7 master server).\n" ..
 "\f1rcs\f7 provides a way to use auto-downloaded maps in ctf and capture modes, and run the map cfg file.\n" ..
-"\f1rcs\f7 requires a one-time installation with these commands: \f0/mastername pisto.horse; updatefrommaster\f7\n" ..
+"\f1rcs\f7 requires a one-time installation with these commands: \f0/mastername "..os.getenv("MASTER_IP").."; updatefrommaster\f7\n" ..
 "For detailed information visit \f0pisto.horse/rcs\f7 . You can uninstall \f1rcs\f7 any time by typing \f0/rcs_uninstall"
 , info.ci) end)
 
 commands.add("votemap", function(info)
   if not info.ci.extra.rcs then 
-    local msg = "\f0Available maps\f7: " .. table.concat(monomaps, ", ")
+    local msg = "\f0Available maps\f7: " .. table.concat(maplist, ", ")
     playermsg(msg, info.ci)
   else
     rcs.send(info.ci, maplist_gui)
@@ -258,7 +250,6 @@ spaghetti.later(100, function()
             if not ci.extra.rcs  then 
                 txt="\f7~~ RCS is not available ~~\f3\nTHIS SERVER REQUIRES A SPECIAL CLIENT SIDE CUBESCRIPT TO PROPERLY LOAD THE MAPS.\nPLEASE USE THIS CHAT COMMAND \f0/mastername "..os.getenv("MASTER_IP")..";updatefrommaster\f3 TO DOWNLOAD THE SCRIPT AND \f0/reconnect\f3 TO THIS SERVER.\n"..
                 "YOUR MASTER SERVER WILL BE RESET TO ITS ORIGINAL VALUE (\f0master.sauerbraten.org\f3) AFTER THE PROCESS."
-              -- engine.writelog("RCS not available for "..server.colorname(ci, nil))
                 playermsg(txt, ci)    
             end
         end
@@ -270,11 +261,6 @@ local function trysendmap(ci, force)
   if not maps[server.smapname] or server.m_edit or not sendmap.hasmap() then return end
   if not force and ci.mapcrc % 2^32 == server.mcrc then server.sendservmsg(server.colorname(ci, nil) .. " \f0has this map already\f7.") return end
   local extra = ci.extra
-
-  
---   if not server.m_teammode then
---     engine.writelog("sending map to " .. server.colorname(ci, nil) .. " with coopedit" .. (extra.rcs and " and rcs" or ""))
---     sendmap.forcecurrent(ci, true, true, true)
   if extra.rcs then
     engine.writelog("sending map to " .. server.colorname(ci, nil) .. " with savemap")
     sendmap.forcecurrent(ci, false, true, maps[server.smapname].cfgcopy)
@@ -283,8 +269,6 @@ local function trysendmap(ci, force)
 end
 
 spaghetti.addhook("fence", function(info)
-
-
   local ci = info.ci
   local extra = ci.extra
   if extra.mapcrcfence ~= info.fence then return end
@@ -318,4 +302,9 @@ spaghetti.addhook("sendmap", function(info)
   if ci.extra.wantspec or ci.state.state ~= engine.CS_SPECTATOR or ci.privilege == server.PRIV_NONE and server.mastermode >= server.MM_LOCKED then return end
   server.unspectate(ci)
   server.sendspawn(ci)
+end)
+
+--lazy fix all bugs.
+spaghetti.addhook("noclients", function()
+  if engine.totalmillis >= 24 * 60 * 60 * 1000 then reboot, spaghetti.quit = true, true end
 end)
